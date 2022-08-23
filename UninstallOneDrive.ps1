@@ -10,6 +10,8 @@
 
 .TAGS PowerShell Microsoft OneDrive remove uninstall delete erase
 
+.PROJECTURI https://github.com/asheroto/UninstallOneDrive
+
 .RELEASENOTES
 [Version 0.0.1] - Initial release.
 [Version 0.0.2] - Updated description.
@@ -26,6 +28,8 @@
 .NOTES
     Version      : 0.0.2
     Created by   : asheroto
+.LINK
+    Project Site: https://github.com/asheroto/UninstallOneDrive
 #>
 
 #Requires -RunAsAdministrator
