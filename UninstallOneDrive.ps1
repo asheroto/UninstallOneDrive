@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.0.2
+.VERSION 0.0.3
 
 .GUID a4aa6d94-fe9e-41c0-8d8e-112b0c195fcb
 
@@ -15,6 +15,7 @@
 .RELEASENOTES
 [Version 0.0.1] - Initial release.
 [Version 0.0.2] - Updated description.
+[Version 0.0.3] - Added to GitHub.
 
 #>
 
@@ -26,7 +27,7 @@
 .EXAMPLE
     UninstallOneDrive.ps1
 .NOTES
-    Version      : 0.0.2
+    Version      : 0.0.3
     Created by   : asheroto
 .LINK
     Project Site: https://github.com/asheroto/UninstallOneDrive
