@@ -8,7 +8,7 @@ This script will uninstall OneDrive from all locations in a few seconds.
 On any Windows machine, open PowerShell as Administrator and type...
 
 ```powershell
-Install-Script UninstallOneDrive
+Install-Script UninstallOneDrive -Force
 ```
 
 And accept the prompts.
