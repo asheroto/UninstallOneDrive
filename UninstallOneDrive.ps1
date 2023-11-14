@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.0.0
+.VERSION 1.0.2
 
 .GUID a4aa6d94-fe9e-41c0-8d8e-112b0c195fcb
 
@@ -19,6 +19,8 @@
 [Version 0.0.4] - Fixed signature.
 [Version 0.0.5] - Fixed various bugs.
 [Version 1.0.0] - Major refactor. Added removal of OneDrive scheduled tasks. Added Help, Version, CheckForUpdate, and UpdateSelf.
+[Version 1.0.1] - Add Uninstall Complete verbiage.
+[Version 1.0.2] - Fix position on Uninstall Complete verbiage.
 
 #>
 
@@ -30,7 +32,7 @@
 .EXAMPLE
     UninstallOneDrive.ps1
 .NOTES
-    Version      : 1.0.0
+    Version      : 1.0.2
     Created by   : asheroto
 .LINK
     https://github.com/asheroto/UninstallOneDrive
@@ -46,7 +48,7 @@ param (
 #Requires -RunAsAdministrator
 
 # Version
-$CurrentVersion = '1.0.0'
+$CurrentVersion = '1.0.2'
 $RepoOwner = 'asheroto'
 $RepoName = 'UninstallOneDrive'
 $PowerShellGalleryName = 'UninstallOneDrive'
@@ -268,7 +270,10 @@ try {
     # Remove OneDrive scheduled tasks
     Write-Output "Removing OneDrive scheduled tasks..."
     Get-ScheduledTask -TaskName "OneDrive*" | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+
+    # Output uninstall complete
+    Write-Output "Uninstall complete!"
 } catch {
-    Write-Output "Uninstall failed with exception: $($_.Exception.Message)"
+    Write-Warning "Uninstall failed with exception: $($_.Exception.Message)"
     exit 1
 }
