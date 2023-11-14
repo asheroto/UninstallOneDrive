@@ -1,3 +1,5 @@
+![UninstallOneDrive](https://github.com/asheroto/UninstallOneDrive/assets/49938263/96e5aa5b-2583-4be7-84c1-84eae6d762c1)
+
 [![GitHub Release Date - Published_At](https://img.shields.io/github/release-date/asheroto/UninstallOneDrive)](https://github.com/asheroto/UninstallOneDrive/releases)
 [![GitHub Downloads - All Releases](https://img.shields.io/github/downloads/asheroto/UninstallOneDrive/total)](https://github.com/asheroto/UninstallOneDrive/releases)
 [![GitHub Sponsor](https://img.shields.io/github/sponsors/asheroto?label=Sponsor&logo=GitHub)](https://github.com/sponsors/asheroto?frequency=one-time&sponsor=asheroto)
