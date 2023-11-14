@@ -6,7 +6,14 @@
 
 # UninstallOneDrive
 
-This script quickly takes care of uninstalling OneDrive from various locations. It also cleans up related registry keys and scheduled tasks in just a few seconds.
+Uninstall OneDrive in less than a minute.
+
+## Features
+- OneDrive process killed
+- Multiple locations checked, including the most common locations as well as the EXE specified in the Uninstall registry key
+- Registry keys cleaned up
+- Scheduled tasks removed
+- User folders are **NOT** removed
 
 ## Setup
 
