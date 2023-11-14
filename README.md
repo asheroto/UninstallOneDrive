@@ -52,7 +52,7 @@ The URL [asheroto.com/uninstallonedrive](https://asheroto.com/uninstallonedrive)
 If you just need to run the basic script without any parameters, you can use the following one-line command:
 
 ```powershell
-irm asheroto.com/UninstallOneDrive | iex
+irm asheroto.com/uninstallonedrive | iex
 ```
 
 ### Method 3 - Download Locally and Run
