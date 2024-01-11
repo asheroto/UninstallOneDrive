@@ -88,3 +88,7 @@ As a more conventional approach, download the latest [UninstallOneDrive.ps1](htt
 ```powershell
 UninstallOneDrive -UpdateSelf
 ```
+
+## Contributing
+
+If you'd like to help develop this project: fork the repo, edit, then submit a pull request. 😊
