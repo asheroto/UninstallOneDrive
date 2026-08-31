@@ -22,7 +22,7 @@
 [Version 1.0.1] - Add Uninstall Complete verbiage.
 [Version 1.0.2] - Fix position on Uninstall Complete verbiage.
 [Version 1.1.0] - Add per-user OneDrive removal (LOCALAPPDATA and HKCU). Fix version comparison in CheckForUpdate. Fix uninstall string parsing when no arguments present. Check uninstaller exit codes. Verify removal before reporting success. Fix CheckForUpdate verbiage. Add runtime elevation check so running via irm | iex without administrator rights fails with a clear message instead of partially running.
-[Version 1.1.1] - Add upfront OneDrive detection with early exit when not installed.
+[Version 1.1.1] - Add upfront OneDrive detection with early exit when not installed. Fix exit statements closing the console when run via irm | iex.
 
 #>
 
@@ -247,7 +247,8 @@ try {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) {
         Write-Warning "This script must be run as administrator. Open an elevated PowerShell window and try again."
-        exit 1
+        # exit closes the whole console under irm | iex, so only exit when running as a file
+        if ($PSCommandPath) { exit 1 } else { return }
     }
 
     # Heading
@@ -256,7 +257,7 @@ try {
     # Exit early if OneDrive is not installed
     if (-not (Test-OneDriveInstalled)) {
         Write-Output "OneDrive not detected, nothing to uninstall."
-        exit 0
+        if ($PSCommandPath) { exit 0 } else { return }
     }
 
     $oneDrivePaths = @(
@@ -321,11 +322,11 @@ try {
     # Verify removal before claiming success
     if (Test-OneDriveInstalled) {
         Write-Warning "OneDrive still appears to be installed. Removal may have failed or a reboot may be required."
-        exit 1
+        if ($PSCommandPath) { exit 1 }
     } else {
         Write-Output "Uninstall complete! OneDrive is no longer detected."
     }
 } catch {
     Write-Warning "Uninstall failed with exception: $($_.Exception.Message)"
-    exit 1
+    if ($PSCommandPath) { exit 1 }
 }
