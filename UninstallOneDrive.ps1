@@ -22,7 +22,7 @@
 [Version 1.0.1] - Add Uninstall Complete verbiage.
 [Version 1.0.2] - Fix position on Uninstall Complete verbiage.
 [Version 1.1.0] - Add per-user OneDrive removal (LOCALAPPDATA and HKCU). Fix version comparison in CheckForUpdate. Fix uninstall string parsing when no arguments present. Check uninstaller exit codes. Verify removal before reporting success. Fix CheckForUpdate verbiage. Add runtime elevation check so running via irm | iex without administrator rights fails with a clear message instead of partially running.
-[Version 1.1.1] - Add upfront OneDrive detection with early exit when not installed. Fix exit statements closing the console when run via irm | iex.
+[Version 1.1.1] - Add upfront OneDrive detection with early exit when not installed. Fix exit statements closing the console when run via irm | iex. Add multi-user support: detect OneDrive in any user profile and remove the OneDrive app folder from every profile (user data in the OneDrive folder is never touched).
 
 #>
 
@@ -230,6 +230,12 @@ function Test-OneDriveInstalled {
             return $true
         }
     }
+
+    # OneDrive in any user profile (wildcards are valid in Test-Path)
+    if (Test-Path (Join-Path $env:SystemDrive "Users\*\AppData\Local\Microsoft\OneDrive\OneDrive.exe") -ErrorAction SilentlyContinue) {
+        return $true
+    }
+
     return [bool](Get-UninstallString -DisplayName "Microsoft OneDrive")
 }
 
@@ -318,6 +324,22 @@ try {
     # Remove OneDrive scheduled tasks
     Write-Output "Removing OneDrive scheduled tasks..."
     Get-ScheduledTask -TaskName "OneDrive*" -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+
+    # Remove the OneDrive app folder from every user profile (per-user installs only clean the
+    # profile running the script). User data in %UserProfile%\OneDrive is never touched.
+    Write-Output "Deleting OneDrive app folders from all user profiles..."
+    $profileDirs = Get-ChildItem (Join-Path $env:SystemDrive "Users") -Directory -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -notin @("Public", "Default", "Default User", "All Users")
+    }
+    foreach ($profileDir in $profileDirs) {
+        $appPath = Join-Path $profileDir.FullName "AppData\Local\Microsoft\OneDrive"
+        if (Test-Path $appPath) {
+            Write-Output "Deleting `"$appPath`"..."
+            Remove-Item -Path $appPath -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+    # ponytail: other users' HKCU Run keys and uninstall entries are left alone (their hives
+    # aren't loaded); the entries point at files deleted above, so they fail silently
 
     # Verify removal before claiming success
     if (Test-OneDriveInstalled) {
