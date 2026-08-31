@@ -21,7 +21,7 @@
 [Version 1.0.0] - Major refactor. Added removal of OneDrive scheduled tasks. Added Help, Version, CheckForUpdate, and UpdateSelf.
 [Version 1.0.1] - Add Uninstall Complete verbiage.
 [Version 1.0.2] - Fix position on Uninstall Complete verbiage.
-[Version 1.1.0] - Add per-user OneDrive removal (LOCALAPPDATA and HKCU). Fix version comparison in CheckForUpdate. Fix uninstall string parsing when no arguments present. Check uninstaller exit codes. Verify removal before reporting success. Fix CheckForUpdate verbiage.
+[Version 1.1.0] - Add per-user OneDrive removal (LOCALAPPDATA and HKCU). Fix version comparison in CheckForUpdate. Fix uninstall string parsing when no arguments present. Check uninstaller exit codes. Verify removal before reporting success. Fix CheckForUpdate verbiage. Add runtime elevation check so running via irm | iex without administrator rights fails with a clear message instead of partially running.
 
 #>
 
@@ -226,6 +226,13 @@ try {
 
     # Update the script if -UpdateSelf is specified
     if ($UpdateSelf) { UpdateSelf }
+
+    # Runtime elevation check - #Requires is ignored when run via irm | iex
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        Write-Warning "This script must be run as administrator. Open an elevated PowerShell window and try again."
+        exit 1
+    }
 
     # Heading
     Write-Output "To check for updates, run UninstallOneDrive -CheckForUpdate"
