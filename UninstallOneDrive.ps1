@@ -217,6 +217,21 @@ function Get-UninstallString {
     return $null
 }
 
+function Test-OneDriveInstalled {
+    # Setup exes ship with Windows, so only OneDrive.exe and the registry entry indicate an actual install
+    $installPaths = @(
+        "$ENV:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe",
+        "$ENV:ProgramFiles\Microsoft OneDrive\OneDrive.exe",
+        "${ENV:ProgramFiles(x86)}\Microsoft OneDrive\OneDrive.exe"
+    )
+    foreach ($path in $installPaths) {
+        if (Test-Path $path) {
+            return $true
+        }
+    }
+    return [bool](Get-UninstallString -DisplayName "Microsoft OneDrive")
+}
+
 try {
     # First heading
     Write-Output "UninstallOneDrive $CurrentVersion"
@@ -236,6 +251,12 @@ try {
 
     # Heading
     Write-Output "To check for updates, run UninstallOneDrive -CheckForUpdate"
+
+    # Exit early if OneDrive is not installed
+    if (-not (Test-OneDriveInstalled)) {
+        Write-Output "OneDrive not detected, nothing to uninstall."
+        exit 0
+    }
 
     $oneDrivePaths = @(
         "$ENV:SystemRoot\System32\OneDriveSetup.exe",
@@ -297,13 +318,7 @@ try {
     Get-ScheduledTask -TaskName "OneDrive*" -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
 
     # Verify removal before claiming success
-    $remainingPaths = @(
-        "$ENV:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe",
-        "$ENV:ProgramFiles\Microsoft OneDrive\OneDrive.exe",
-        "${ENV:ProgramFiles(x86)}\Microsoft OneDrive\OneDrive.exe"
-    ) | Where-Object { Test-Path $_ }
-
-    if ($remainingPaths -or (Get-UninstallString -DisplayName "Microsoft OneDrive")) {
+    if (Test-OneDriveInstalled) {
         Write-Warning "OneDrive still appears to be installed. Removal may have failed or a reboot may be required."
         exit 1
     } else {
