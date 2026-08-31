@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.1.0
+.VERSION 1.1.1
 
 .GUID a4aa6d94-fe9e-41c0-8d8e-112b0c195fcb
 
@@ -22,6 +22,7 @@
 [Version 1.0.1] - Add Uninstall Complete verbiage.
 [Version 1.0.2] - Fix position on Uninstall Complete verbiage.
 [Version 1.1.0] - Add per-user OneDrive removal (LOCALAPPDATA and HKCU). Fix version comparison in CheckForUpdate. Fix uninstall string parsing when no arguments present. Check uninstaller exit codes. Verify removal before reporting success. Fix CheckForUpdate verbiage. Add runtime elevation check so running via irm | iex without administrator rights fails with a clear message instead of partially running.
+[Version 1.1.1] - Add upfront OneDrive detection with early exit when not installed.
 
 #>
 
@@ -33,7 +34,7 @@
 .EXAMPLE
     UninstallOneDrive.ps1
 .NOTES
-    Version      : 1.1.0
+    Version      : 1.1.1
     Created by   : asheroto
 .LINK
     https://github.com/asheroto/UninstallOneDrive
@@ -49,7 +50,7 @@ param (
 #Requires -RunAsAdministrator
 
 # Version
-$CurrentVersion = '1.1.0'
+$CurrentVersion = '1.1.1'
 $RepoOwner = 'asheroto'
 $RepoName = 'UninstallOneDrive'
 $PowerShellGalleryName = 'UninstallOneDrive'
