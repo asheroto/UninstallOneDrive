@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.0.2
+.VERSION 1.1.0
 
 .GUID a4aa6d94-fe9e-41c0-8d8e-112b0c195fcb
 
@@ -21,6 +21,7 @@
 [Version 1.0.0] - Major refactor. Added removal of OneDrive scheduled tasks. Added Help, Version, CheckForUpdate, and UpdateSelf.
 [Version 1.0.1] - Add Uninstall Complete verbiage.
 [Version 1.0.2] - Fix position on Uninstall Complete verbiage.
+[Version 1.1.0] - Add per-user OneDrive removal (LOCALAPPDATA and HKCU). Fix version comparison in CheckForUpdate. Fix uninstall string parsing when no arguments present. Check uninstaller exit codes. Verify removal before reporting success. Fix CheckForUpdate verbiage.
 
 #>
 
@@ -32,7 +33,7 @@
 .EXAMPLE
     UninstallOneDrive.ps1
 .NOTES
-    Version      : 1.0.2
+    Version      : 1.1.0
     Created by   : asheroto
 .LINK
     https://github.com/asheroto/UninstallOneDrive
@@ -48,7 +49,7 @@ param (
 #Requires -RunAsAdministrator
 
 # Version
-$CurrentVersion = '1.0.2'
+$CurrentVersion = '1.1.0'
 $RepoOwner = 'asheroto'
 $RepoName = 'UninstallOneDrive'
 $PowerShellGalleryName = 'UninstallOneDrive'
@@ -131,7 +132,7 @@ function CheckForUpdate {
     Write-Output ("Latest Version:   {0,-40}" -f $Data.LatestVersion)
     Write-Output ("Published at:     {0,-40}" -f $Data.PublishedDateTime)
 
-    if ($Data.LatestVersion -gt $CurrentVersion) {
+    if ([version]($Data.LatestVersion.TrimStart('v')) -gt $CurrentVersion) {
         Write-Output ("Status:           {0,-40}" -f "A new version is available.")
         Write-Output "`nOptions to update:"
         Write-Output "- Download latest release: https://github.com/$RepoOwner/$RepoName/releases"
@@ -188,6 +189,9 @@ function Uninstall-OneDrive {
         Write-Output "Uninstalling OneDrive found in $Path"
         $proc = Start-Process $Path "/uninstall" -PassThru
         $proc.WaitForExit()
+        if ($proc.ExitCode -ne 0) {
+            Write-Warning "Uninstaller at `"$Path`" exited with code $($proc.ExitCode)."
+        }
     } else {
         Write-Output "Path `"$Path`" not found, skipping..."
     }
@@ -195,18 +199,19 @@ function Uninstall-OneDrive {
 
 function Get-UninstallString {
     param (
-        [string]$Match
+        [string]$DisplayName
     )
     $uninstallPaths = @(
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
         'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
     )
 
     foreach ($path in $uninstallPaths) {
         if (Test-Path $path) {
-            $uninstallString = Get-ChildItem -Path $path | 
-            Get-ItemProperty | 
-            Where-Object { $_.DisplayName -like "*$Match*" } |
+            $uninstallString = Get-ChildItem -Path $path |
+            Get-ItemProperty |
+            Where-Object { $_.DisplayName -eq $DisplayName } |
             Select-Object -ExpandProperty UninstallString -First 1
             if ($uninstallString) {
                 return $uninstallString
@@ -227,7 +232,7 @@ try {
     if ($UpdateSelf) { UpdateSelf }
 
     # Heading
-    Write-Output "To check for updates, run winget-install -CheckForUpdate"
+    Write-Output "To check for updates, run UninstallOneDrive -CheckForUpdate"
 
     $oneDrivePaths = @(
         "$ENV:SystemRoot\System32\OneDriveSetup.exe",
@@ -235,6 +240,12 @@ try {
         "$ENV:ProgramFiles\Microsoft Office\root\Integration\Addons\OneDriveSetup.exe",
         "${ENV:ProgramFiles(x86)}\Microsoft Office\root\Integration\Addons\OneDriveSetup.exe"
     )
+
+    # Per-user installs keep OneDriveSetup.exe in a versioned folder under LOCALAPPDATA
+    $perUserSetup = Get-ChildItem -Path "$ENV:LOCALAPPDATA\Microsoft\OneDrive" -Filter "OneDriveSetup.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName -First 1
+    if ($perUserSetup) {
+        $oneDrivePaths += $perUserSetup
+    }
 
     Write-Output "Stopping OneDrive processes..."
     Stop-Process -Name OneDrive* -Force -ErrorAction SilentlyContinue
@@ -245,21 +256,32 @@ try {
     }
 
     # Uninstall from Uninstall registry key UninstallString
-    $uninstallString = Get-UninstallString -Match "OneDrive"
+    $uninstallString = Get-UninstallString -DisplayName "Microsoft OneDrive"
     if ($uninstallString) {
         Write-Output "Uninstalling OneDrive found in Uninstall registry key..."
         try {
             # Remove quotation marks from the uninstall string
             $uninstallString = $uninstallString.Replace('"', '')
 
-            $exePath = $uninstallString.Substring(0, $uninstallString.IndexOf(".exe") + 4).Trim()
-            $argz = $uninstallString.Substring($uninstallString.IndexOf(".exe") + 5).Trim().replace("  ", " ")
+            $exeIndex = $uninstallString.IndexOf(".exe", [System.StringComparison]::OrdinalIgnoreCase)
+            if ($exeIndex -eq -1) {
+                throw "Unrecognized uninstall string: $uninstallString"
+            }
+            $exePath = $uninstallString.Substring(0, $exeIndex + 4).Trim()
+            $argz = $uninstallString.Substring($exeIndex + 4).Trim()
 
             # Write the path of the executable and the arguments to the console
             Write-Output "`t`"$exePath`""
 
-            $proc = Start-Process -FilePath $exePath -Args $argz -PassThru
+            if ($argz) {
+                $proc = Start-Process -FilePath $exePath -Args $argz -PassThru
+            } else {
+                $proc = Start-Process -FilePath $exePath -PassThru
+            }
             $proc.WaitForExit()
+            if ($proc.ExitCode -ne 0) {
+                Write-Warning "Uninstaller exited with code $($proc.ExitCode)."
+            }
         } catch {
             Write-Output "Uninstall failed with exception: $($_.Exception.Message)"
         }
@@ -269,10 +291,21 @@ try {
 
     # Remove OneDrive scheduled tasks
     Write-Output "Removing OneDrive scheduled tasks..."
-    Get-ScheduledTask -TaskName "OneDrive*" | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+    Get-ScheduledTask -TaskName "OneDrive*" -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
 
-    # Output uninstall complete
-    Write-Output "Uninstall complete!"
+    # Verify removal before claiming success
+    $remainingPaths = @(
+        "$ENV:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe",
+        "$ENV:ProgramFiles\Microsoft OneDrive\OneDrive.exe",
+        "${ENV:ProgramFiles(x86)}\Microsoft OneDrive\OneDrive.exe"
+    ) | Where-Object { Test-Path $_ }
+
+    if ($remainingPaths -or (Get-UninstallString -DisplayName "Microsoft OneDrive")) {
+        Write-Warning "OneDrive still appears to be installed. Removal may have failed or a reboot may be required."
+        exit 1
+    } else {
+        Write-Output "Uninstall complete! OneDrive is no longer detected."
+    }
 } catch {
     Write-Warning "Uninstall failed with exception: $($_.Exception.Message)"
     exit 1
