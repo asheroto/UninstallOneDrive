@@ -85,10 +85,6 @@ function Get-GitHubRelease {
 
         .PARAMETER Repo
         The name of the repository.
-
-        .EXAMPLE
-        Get-GitHubRelease -Owner "asheroto" -Repo "winget-install"
-        This command retrieves the latest release version and published datetime of the winget-install repository owned by asheroto.
     #>
     [CmdletBinding()]
     param (
